@@ -33,14 +33,16 @@
 ```
 iosfarm/
   config.py            配置(dataclass) — 单一事实来源
-  lifecycle/           模拟器生命周期：SimulatorManager
+  lifecycle/           模拟器生命周期：SimulatorManager(boot/shutdown/erase/find_udid)
+  apps/                应用管理：AppManager(install/uninstall/launch/terminate)
   control/             自动化接口：ControlClient(抽象) + BaguetteControl(实现)
   capture/             抓包：CaptureBackend(抽象) + WebKitCapture / MitmproxyCapture + addon
   proxy/               代理：ProxyManager(set/clear/rotate + CA trust)
-  session.py           Session 门面：组合四模块
+  session.py           Session 门面：组合各模块
   flows/               业务流程：Flow(抽象) + 注册表 + google_search(示例)
+  cli.py               命令行：sim / app / flow 子命令
 config.json            默认配置(模拟器/抓包/代理/各 flow 参数)
-run.py                 CLI：跑一个 flow
+run.py                 CLI 入口(= python3 -m iosfarm)
 captures/              产物：flow JSON + _index.jsonl + 截图 + 结果
 docs/                  方案与对比文档
 ```
@@ -56,12 +58,48 @@ pip install -r requirements.txt
 # 编辑 config.json：capture.hosts 填目标域，flows 填参数
 
 # 跑内置业务流程
-python3 run.py --list
-python3 run.py --flow google_search
-python3 run.py --flow google_search --params '{"query":"anthropic","scrolls":3}'
+python3 run.py flow --list
+python3 run.py flow google_search
+python3 run.py flow google_search --params '{"query":"anthropic","scrolls":3}'
 
 # 产物
 ls captures/                       # *.json（req/resp）、shot_*.png、result_google_search.json
+```
+
+## 工具命令：模拟器 & 应用管理（sim / app）
+
+`run.py`（等价 `python3 -m iosfarm`）除了 `flow` 还有 `sim` / `app` 两组工具子命令。
+**用 `--udid` 精确指定设备**（默认 `booted`；多台 booted 时必须显式给 UDID）。
+
+```bash
+# —— 查 UDID / 生命周期 ——
+python3 run.py sim list                       # 列全部设备（state/udid/name/runtime）
+python3 run.py sim list --state Booted        # 只看已启动的
+python3 run.py sim udid --name "iPhone 15"    # 打印匹配的第一个 UDID（脚本里好用）
+python3 run.py sim boot     --udid <UDID>
+python3 run.py sim shutdown --udid <UDID>
+
+# —— 自建 App 安装/卸载/启停（仅模拟器切片 .app，无需签名）——
+python3 run.py app install   --udid <UDID> --app /path/YourApp.app
+python3 run.py app launch    --udid <UDID> --bundle com.you.app --arg foo
+python3 run.py app terminate --udid <UDID> --bundle com.you.app
+python3 run.py app uninstall --udid <UDID> --bundle com.you.app
+python3 run.py app list      --udid <UDID>    # 已安装的 bundle id
+```
+
+批量装到多台（用 `sim udid`/`sim list` 取 UDID 再遍历，可并发）：
+```bash
+UDIDS=$(python3 run.py sim list --state Booted | awk '{print $2}')
+echo "$UDIDS" | xargs -P 8 -I {} python3 run.py app install --udid {} --app /path/YourApp.app
+```
+
+编程接口同样可用：
+```python
+from iosfarm import SimulatorManager, AppManager
+udid = SimulatorManager.find_udid(name="iPhone 15", state="Booted")
+app = AppManager(udid)
+app.install("/path/YourApp.app"); app.launch("com.you.app")
+print(app.installed_bundle_ids())
 ```
 
 ## 编程接口（Session）
@@ -102,7 +140,7 @@ class MyFlow(Flow):
         return FlowResult(name=self.name, params=params,
                           captured=len(flows), data={"urls":[f["url"] for f in flows]})
 ```
-在 `flows/__init__.py` 里 `from . import my_flow` 完成注册，即可 `python3 run.py --flow my_flow`。
+在 `flows/__init__.py` 里 `from . import my_flow` 完成注册，即可 `python3 run.py flow my_flow`。
 Flow 里**没有任何** boot/代理/抓包/文件格式的代码——全交给框架。
 
 ## 抓包后端（config.capture.backend）

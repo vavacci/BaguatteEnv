@@ -12,9 +12,12 @@
 """
 from .config import Config
 from .session import Session
+from .lifecycle import SimulatorManager
+from .apps import AppManager
 from .flows.base import Flow, FlowResult, register, get_flow, list_flows
 
 __all__ = [
     "Config", "Session",
+    "SimulatorManager", "AppManager",
     "Flow", "FlowResult", "register", "get_flow", "list_flows",
 ]

@@ -40,6 +40,39 @@ class SimulatorManager:
         return [d["udid"] for devs in data.get("devices", {}).values()
                 for d in devs if d.get("state") == "Booted"]
 
+    @staticmethod
+    def find(name: str | None = None, state: str | None = None,
+             runtime: str | None = None, available_only: bool = True) -> list[dict]:
+        """List devices, optionally filtered by name substring / state / runtime.
+
+        Returns dicts: {"udid","name","state","runtime"}. `runtime` matches a
+        substring of the runtime key (e.g. "iOS-17-5"); `state` is exact (e.g. "Booted").
+        """
+        out: list[dict] = []
+        for rt, devs in SimulatorManager.list_devices().get("devices", {}).items():
+            if runtime and runtime not in rt:
+                continue
+            for d in devs:
+                if available_only and not d.get("isAvailable", True):
+                    continue
+                if name and name.lower() not in d.get("name", "").lower():
+                    continue
+                if state and d.get("state") != state:
+                    continue
+                out.append({"udid": d["udid"], "name": d.get("name"),
+                            "state": d.get("state"), "runtime": rt})
+        return out
+
+    @staticmethod
+    def find_udid(name: str | None = None, state: str | None = None,
+                  runtime: str | None = None) -> str:
+        """Return the udid of the first device matching the filters, or raise."""
+        matches = SimulatorManager.find(name=name, state=state, runtime=runtime)
+        if not matches:
+            raise LifecycleError(
+                f"no simulator matches name={name!r} state={state!r} runtime={runtime!r}")
+        return matches[0]["udid"]
+
     @property
     def udid(self) -> str:
         """Resolve and cache the concrete udid."""

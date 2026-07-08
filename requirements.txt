@@ -1,0 +1,11 @@
+# Python deps for iosfarm (macOS).
+#
+# Non-pip tools installed separately with Homebrew:
+#   brew install baguette                 # control layer (iOS Simulator driver)
+#   brew install ios-webkit-debug-proxy   # webkit capture backend
+#   brew install mitmproxy                # mitmproxy capture backend (optional)
+#
+# webkit backend needs a WebSocket client:
+websockets>=11.0
+# mitmproxy backend needs the mitmproxy package (provides `mitmdump` + addon API):
+mitmproxy>=10.0

@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# runtime pidfiles / logs
+.mitm.pid
+.iwdp.pid
+
+# capture outputs (keep the directory, drop the artifacts)
+captures/*
+!captures/.gitkeep
+
+# macOS
+.DS_Store

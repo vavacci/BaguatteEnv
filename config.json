@@ -1,0 +1,34 @@
+{
+  "simulator": {
+    "udid": "booted",
+    "device_type": null,
+    "runtime": null,
+    "baguette_binary": "baguette",
+    "width": 393,
+    "height": 852
+  },
+  "capture": {
+    "backend": "webkit",
+    "webkit_page_port": 9222,
+    "iwdp_device_port": 9221,
+    "output_dir": "captures",
+    "hosts": ["google.com", "gstatic.com"],
+    "path_prefixes": ["/"],
+    "save_bodies": true,
+    "max_body_bytes": 5242880,
+    "idle_seconds": 2.5,
+    "wait_seconds": 20
+  },
+  "proxy": {
+    "network_service": "Wi-Fi",
+    "enabled": false,
+    "host": "127.0.0.1",
+    "port": 8080,
+    "upstreams": [
+      { "label": "example-socks", "type": "socks", "host": "127.0.0.1", "port": 1080 }
+    ]
+  },
+  "flows": {
+    "google_search": { "query": "claude ai", "scrolls": 2 }
+  }
+}
